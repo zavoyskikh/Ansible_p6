@@ -1,0 +1,76 @@
+- hosts: app
+  become: true
+  tasks:
+# Установка Dokcer
+    - name: gpg apt key
+      when: ansible_distribution == "Ubuntu"
+      ansible.builtin.apt_key:
+        url: "https://download.docker.com/linux/ubuntu/gpg"
+        state: present
+    - name: install yum-utils
+      when: ansible_distribution == "CentOS"
+      ansible.builtin.package:
+        name: yum-utils
+        state: present
+    - name: docker apt repo
+      when: ansible_distribution == "Ubuntu"
+      ansible.builtin.apt_repository:
+        repo: "deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+    - name: docker rpm repo
+      when: ansible_distribution == "CentOS"
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+    - name: install docker
+      ansible.builtin.package:
+        name: "{{ item  }}"
+        state: latest
+        update_cache: true
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+    - name: run docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+# Установка postgresql
+- hosts: database
+  become: true
+  tasks:
+    - name: gpg apt key
+      ansible.builtin.apt_key:
+        url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+        state: present
+    - name: add postgresql repo
+      ansible.builtin.apt_repository:
+        repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+    - name: install postgresql
+      ansible.builtin.package:
+        name: "postgresql-{{ postgresql_version }}"
+        state: present
+        update_cache: true
+    - name: create data directory
+      ansible.builtin.file:
+        name: "{{ postgresql_data_directory }}"
+        state: directory
+        owner: postgres
+        group: postgres
+    - name: modify postgresql config
+      ansible.builtin.lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+        regexp: '^data_directory ='
+        line: "data_directory = '{{ postgresql_data_directory }}'"
+    - name: init data directory
+      command: "sudo -u postgres /usr/lib/postgresql/{{ postgresql_version }}/bin/initdb -D {{ postgresql_data_directory }}"
+      become: false
+    - name: restart postgresql
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted
+
+
