@@ -66,7 +66,7 @@
         regexp: '^data_directory ='
         line: "data_directory = '{{ postgresql_data_directory }}'"
     - name: init data directory
-      command: "sudo -u postgres /usr/lib/postgresql/{{ postgresql_version }}/bin/initdb -D {{ postgresql_data_directory }}"
+      command: "sudo -u postgres /usr/lib/postgresql/{{ postgresql_version }}/bin/initdb -D {{ postgresql_data_directory }} -S"
       become: false
     - name: restart postgresql
       ansible.builtin.service:
