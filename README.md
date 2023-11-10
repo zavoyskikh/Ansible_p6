@@ -2,5 +2,5 @@
 
 ### Запуск плейбука
 ```
-ansible-playbook -i hosts.yml playbook.yml --ask-become-pass
+ansible-playbook -i hosts.yml playbook.yml --ask-become-pass --ask-vault-pass
 ```
